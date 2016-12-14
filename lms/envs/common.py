@@ -2172,6 +2172,9 @@ CSRF_COOKIE_SECURE = False
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'openedx.core.lib.api.paginators.DefaultPagination',
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
     'PAGE_SIZE': 10,
     'URL_FORMAT_OVERRIDE': None,
 }
