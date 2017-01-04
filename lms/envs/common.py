@@ -2153,6 +2153,9 @@ INSTALLED_APPS = (
 
     # additional release utilities to ease automation
     'release_util',
+
+    # Persisting failed tasks, so they can be retried
+    'openedx.core.djangoapps.persistenttask',
 )
 
 # Migrations which are not in the standard module "migrations"
