@@ -12,8 +12,30 @@ import six
 from .models import FailedTask
 
 
-def serialize_args(args):
-    u"""
+# pylint: disable=abstract-method
+class PersistOnFailureTask(Task):
+    """
+    Custom Celery Task base class that persists task data on failure.
+    """
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        """
+        If the task fails, persist a record of the task.
+        """
+        FailedTask.objects.create(
+            task_name=self.name,
+            task_id=task_id,
+            argstring=_serialize_args(args),
+            kwargstring=_serialize_kwargs(kwargs),
+            exc=repr(exc),
+            einfo=six.text_type(einfo),
+            datetime_failed=pytz.utc.localize(datetime.utcnow()),
+        )
+        super(PersistOnFailureTask, self).on_failure(exc, task_id, args, kwargs, einfo)
+
+
+def _serialize_args(args):
+    """
     Combine arglist into a json string.
     """
     if not isinstance(args, (tuple, list)):
@@ -21,43 +43,10 @@ def serialize_args(args):
     return json.dumps(args)
 
 
-def serialize_kwargs(kwargs):
-    u"""
+def _serialize_kwargs(kwargs):
+    """
     Combine kwarg dict into a json string
     """
     if not isinstance(kwargs, dict):
         raise TypeError(u'Kwargs must be a dict')
     return json.dumps(kwargs)
-
-
-# pylint: disable=abstract-method
-class PersistentTask(Task):
-    u"""
-    Custom Celery Task base class that persists task data on failure.
-    """
-    persistent_retry_attribute = u'_persistent_task_retry'
-
-    def __call__(self, *args, **kwargs):
-        if hasattr(self, self.persistent_retry_attribute):
-            # The task is instantiated once per worker, not once per invocation,
-            # so we need to manually clean up any stale persistent retry
-            # attributes before we call the task.
-            delattr(self, self.persistent_retry_attribute)
-        if self.persistent_retry_attribute in kwargs:
-            setattr(self, self.persistent_retry_attribute, kwargs.pop(self.persistent_retry_attribute))
-        super(PersistentTask, self).__call__(*args, **kwargs)
-
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
-        u"""
-        If the task fails, persist a record of the task.
-        """
-        if not getattr(self, self.persistent_retry_attribute, False):
-            FailedTask.objects.create(
-                task_name=self.name,
-                task_id=task_id,
-                argstring=serialize_args(args),
-                kwargstring=serialize_kwargs(kwargs),
-                exc=repr(exc),
-                einfo=six.text_type(einfo),
-                datetime_failed=pytz.utc.localize(datetime.utcnow()),
-            )

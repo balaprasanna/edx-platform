@@ -8,16 +8,16 @@ from celery import task
 from django.test import TestCase
 
 from ..models import FailedTask
-from ..task import PersistentTask
+from ..task import PersistOnFailureTask
 
 
-class PersistentTaskTestCase(TestCase):
+class PersistOnFailureTaskTestCase(TestCase):
     """
     Test that persistent tasks save the appropriate values when needed.
     """
 
     def setUp(self):
-        @task(base=PersistentTask)
+        @task(base=PersistOnFailureTask)
         def exampletask(exception=None):
             u"""
             A simple task for testing persistence
@@ -26,7 +26,7 @@ class PersistentTaskTestCase(TestCase):
                 raise ValueError(u'The example task failed')
             return
         self.exampletask = exampletask
-        super(PersistentTaskTestCase, self).setUp()
+        super(PersistOnFailureTaskTestCase, self).setUp()
 
     def test_exampletask_without_failure(self):
         result = self.exampletask.delay()
@@ -54,16 +54,10 @@ class PersistentTaskTestCase(TestCase):
         self.assertIn(u"raise ValueError(u'The example task failed')\n", failed_task_object.einfo)
         self.assertIsNone(failed_task_object.datetime_resolved)
 
-    def test_retried_task_does_not_persist(self):
-        result = self.exampletask.delay(exception=True, _persistent_task_retry=True)
-        with self.assertRaises(ValueError):
-            result.wait()
-        self.assertEqual(result.status, u'FAILURE')
-        self.assertFalse(FailedTask.objects.exists())
-
     def test_persists_when_called_with_wrong_args(self):
         result = self.exampletask.delay(err=True)
         with self.assertRaises(TypeError):
             result.wait()
         self.assertEqual(result.status, u'FAILURE')
-        self.assertTrue(FailedTask.objects.exists())
+        failed_task_object = FailedTask.objects.get()
+        self.assertEqual(failed_task_object.kwargs, {u'err': True})
