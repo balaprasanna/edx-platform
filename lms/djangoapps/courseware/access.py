@@ -33,9 +33,25 @@ from xmodule.x_module import XModule
 from xmodule.split_test_module import get_split_user_partitions
 from xmodule.partitions.partitions import NoSuchUserPartitionError, NoSuchUserPartitionGroupError
 
-from openedx.core.djangoapps.external_auth.models import ExternalAuthMap
+from courseware.access_response import (
+    MilestoneError,
+    MobileAvailabilityError,
+    VisibilityError,
+)
+from courseware.access_utils import (
+    ACCESS_DENIED,
+    ACCESS_GRANTED,
+    adjust_start_date,
+    check_start_date,
+    debug,
+    in_preview_mode
+)
 from courseware.masquerade import get_masquerade_role, is_masquerading_as_student
+from lms.djangoapps.ccx.custom_exception import CCXLocatorValidationException
+from lms.djangoapps.ccx.models import CustomCourseForEdX
+from mobile_api.models import IgnoreMobileAvailableFlagConfig
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from openedx.core.djangoapps.external_auth.models import ExternalAuthMap
 from student import auth
 from student.models import CourseEnrollmentAllowed
 from student.roles import (
@@ -54,19 +70,6 @@ from util.milestones_helpers import (
     is_prerequisite_courses_enabled,
 )
 from ccx_keys.locator import CCXLocator
-
-from courseware.access_response import (
-    MilestoneError,
-    MobileAvailabilityError,
-    VisibilityError,
-)
-from courseware.access_utils import (
-    adjust_start_date, check_start_date, debug, ACCESS_GRANTED, ACCESS_DENIED,
-    in_preview_mode
-)
-
-from lms.djangoapps.ccx.custom_exception import CCXLocatorValidationException
-from lms.djangoapps.ccx.models import CustomCourseForEdX
 
 log = logging.getLogger(__name__)
 
@@ -856,15 +859,16 @@ def is_mobile_available_for_user(user, descriptor):
     """
     Returns whether the given course is mobile_available for the given user.
     Checks:
-        mobile_available flag on the course
+        mobile_available flag on the course, unless the ignore_mobile_available_flag is enabled
         Beta User and staff access overrides the mobile_available flag
     Arguments:
         descriptor (CourseDescriptor|CourseOverview): course or overview of course in question
     """
     return (
-        auth.user_has_role(user, CourseBetaTesterRole(descriptor.id))
-        or _has_staff_access_to_descriptor(user, descriptor, descriptor.id)
-        or _is_descriptor_mobile_available(descriptor)
+        (auth.user_has_role(user, CourseBetaTesterRole(descriptor.id)) or
+         _has_staff_access_to_descriptor(user, descriptor, descriptor.id) or
+         _is_descriptor_mobile_available(descriptor)) or
+        IgnoreMobileAvailableFlagConfig.ignore_mobile_available_flag()
     )
 
 

@@ -26,7 +26,8 @@ from xmodule.modulestore.exceptions import ItemNotFoundError
 
 from .serializers import CourseEnrollmentSerializer, UserSerializer
 from .. import errors
-from ..utils import mobile_view, mobile_course_access
+from ..decorators import mobile_course_access
+from ..utils import mobile_view
 
 
 @mobile_view(is_user=True)
@@ -60,8 +61,7 @@ class UserDetail(generics.RetrieveAPIView):
         * username: The username of the currently signed in user.
     """
     queryset = (
-        User.objects.all()
-        .select_related('profile')
+        User.objects.all().select_related('profile')
     )
     serializer_class = UserSerializer
     lookup_field = 'username'
@@ -286,7 +286,7 @@ class UserCourseEnrollmentsList(generics.ListAPIView):
             enrollment for enrollment in enrollments
             if enrollment.course_overview and self.is_org(org, enrollment.course_overview.org) and
             is_mobile_available_for_user(self.request.user, enrollment.course_overview)
-        ]
+            ]
 
 
 @api_view(["GET"])
