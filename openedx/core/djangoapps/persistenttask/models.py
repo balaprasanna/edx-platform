@@ -49,10 +49,9 @@ class FailedTask(models.Model):
     """
     task_name = models.CharField(max_length=255, db_index=True)
     task_id = models.CharField(max_length=255)
-    argstring = models.CharField(max_length=4096, blank=True)
-    kwargstring = models.CharField(max_length=4096, blank=True)
-    exc = models.CharField(max_length=4096)
-    einfo = models.TextField()
+    argstring = models.TextField(blank=True)
+    kwargstring = models.TextField(blank=True)
+    exc = models.CharField(max_length=255)
     datetime_failed = models.DateTimeField()
     datetime_resolved = models.DateTimeField(blank=True, null=True, default=None, db_index=True)
 
