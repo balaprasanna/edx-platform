@@ -251,15 +251,21 @@ describe 'Problem', ->
               callable()
             done: (callable) ->
               callable()
-        spyOn @problem, 'enableAllButtons'
         @problem.submit()
-        expect(@problem.enableAllButtons).toHaveBeenCalledWith false, true
         if jQuery.active == 0
           deferred.resolve()
         deferred.promise()
 
+      spyOn(@problem, 'disableButtons').and.callThrough()
+      spyOn(@problem, 'enableSubmitButton').and.callThrough()
+
+      # Submit button should not be disabled after adding an input
+      $('#input_example_1').val('test').trigger('input')
+      expect(@problem.submitButton).not.toHaveAttr('disabled')
+
       runs.call(self).then(->
-        expect(self.problem.enableAllButtons).toHaveBeenCalledWith true, true
+        expect(self.problem.disableButtons).toHaveBeenCalled
+        expect(self.problem.enableSubmitButton).toHaveBeenCalledWith false, true
         return
       ).always done
 
@@ -275,14 +281,22 @@ describe 'Problem', ->
               callable()
             done: (callable) ->
               callable()
-        spyOn @problem.submitButtonLabel, 'text'
+        spyOn(@problem, 'enableSubmitButton').and.callThrough()
+        spyOn(@problem.submitButtonLabel, 'text').and.callThrough()
+
+        $('#input_example_1').val('test').trigger('input')
+        expect(@problem.submitButton).not.toHaveAttr('disabled')
+
         @problem.submit()
+        expect(@problem.submitButton).not.toHaveAttr('disabled')
+        expect(@problem.enableSubmitButton).toHaveBeenCalledWith true
         expect(@problem.submitButtonLabel.text).toHaveBeenCalledWith 'Submitting'
         if jQuery.active == 0
           deferred.resolve()
         deferred.promise()
 
       runs.call(self).then(->
+        expect(self.problem.enableSubmitButton).toHaveBeenCalledWith true, true
         expect(self.problem.submitButtonLabel.text).toHaveBeenCalledWith 'Submit'
         return
       ).always done
@@ -433,16 +447,18 @@ describe 'Problem', ->
           promise = undefined
           promise = always: (callable) ->
             callable()
-        spyOn @problem, 'enableAllButtons'
+        spyOn(@problem, 'disableButtons').and.callThrough()
+        spyOn(@problem, 'enableSubmitButton').and.callThrough()
         @problem.reset()
-        expect(@problem.enableAllButtons).toHaveBeenCalledWith false, false
+        expect(@problem.disableButtons).toHaveBeenCalled
+        # enableSubmitButton should not have been called since the initial button is disabled
+        expect(@problem.enableSubmitButton).not.toHaveBeenCalled
         expect(@problem.submitButtonLabel).toHaveText 'Submit'
         if jQuery.active == 0
           deferred.resolve()
         deferred.promise()
 
       runs.call(self).then(->
-        expect(self.problem.enableAllButtons).toHaveBeenCalledWith true, false
         expect(self.problem.submitButtonLabel).toHaveText 'Submit'
       ).always done
 
@@ -733,16 +749,19 @@ describe 'Problem', ->
           callback(success: 'correct', html: curr_html)
           promise = always: (callable) ->
             callable()
-        spyOn @problem, 'enableAllButtons'
+        spyOn(@problem, 'disableButtons').and.callThrough()
+        spyOn @problem, 'enableSubmitButton'
+        spyOn @problem.submitButtonLabel, 'text'
         @problem.save()
-        expect(@problem.enableAllButtons).toHaveBeenCalledWith false, false
+        expect(@problem.disableButtons).toHaveBeenCalled
+        expect(@problem.enableSubmitButton).not.toHaveBeenCalled
         expect(@problem.submitButtonLabel).toHaveText 'Submit'
         if jQuery.active == 0
           deferred.resolve()
         deferred.promise()
 
       runs.call(self).then(->
-        expect(self.problem.enableAllButtons).toHaveBeenCalledWith true, false
+        expect(self.problem.submitButtonLabel.text).not.toHaveBeenCalled
         expect(self.problem.submitButtonLabel).toHaveText 'Submit'
       ).always done
 

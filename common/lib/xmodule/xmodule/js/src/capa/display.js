@@ -36,8 +36,11 @@
                 }
                 return Problem.prototype.enableSubmitButton.apply(that, arguments);
             };
-            this.enableAllButtons = function(enable, isFromCheckOperation) { // eslint-disable-line no-unused-vars
-                return Problem.prototype.enableAllButtons.apply(that, arguments);
+            this.enableButtons = function() {
+                return Problem.prototype.enableButtons.apply(that, arguments);
+            };
+            this.disableButtons = function() {
+                return Problem.prototype.disableButtons.apply(that, arguments);
             };
             this.disableAllButtonsWhileRunning = function(
                 operationCallback, isFromCheckOperation // eslint-disable-line no-unused-vars
@@ -1157,32 +1160,61 @@
          */
         Problem.prototype.disableAllButtonsWhileRunning = function(operationCallback, isFromCheckOperation) {
             var that = this;
-            this.enableAllButtons(false, isFromCheckOperation);
+            var allButtons = [this.resetButton, this.saveButton, this.showButton, this.hintButton, this.submitButton];
+            var disabledButtons = this.disableButtons(allButtons, isFromCheckOperation);
             return operationCallback().always(function() {
-                return that.enableAllButtons(true, isFromCheckOperation);
+                return that.enableButtons(disabledButtons, isFromCheckOperation);
             });
         };
 
         /**
-         * Used to enable/disable all buttons in problem.
+         * Disables all buttons by adding the disabled attribute. The submit button is checked separately due to
+         *     the changing text it contains.
          *
          * params:
-         *     'enable' is a boolean to determine enabling/disabling of buttons.
-         *     'isFromCheckOperation' is a boolean to keep track if operation was initiated
+         *     'changeText' is a boolean to keep track if operation was initiated
+         *         from submit so that text of submit button will also be changed while disabling/enabling
+         *         the submit button.
+         *
+         * returns:
+         *      an array of the buttons that have had their state modified to disabled.
+         *          This return value should be preserved and used to re-enable them when input should be accepted again
+         */
+        Problem.prototype.disableButtons = function(buttons, changeText) {
+            var that = this;
+            var disabledButtons = [];
+            buttons.forEach(function(button) {
+                if (!button.attr('disabled')) {
+                    disabledButtons.push(button);
+                    if (button === that.submitButton) {
+                        that.enableSubmitButton(false, changeText);
+                    } else {
+                        button.attr({disabled: 'disabled'});
+                    }
+                }
+            });
+            return disabledButtons;
+        };
+
+        /**
+         * Enables all buttons by removing the disabled attribute. The submit button is checked separately due to
+         *     the changing text it contains.
+         *
+         * params:
+         *     'buttons' is an array of buttons that will have their 'disabled' attribute deleted
+         *     'changeText' is a boolean to keep track if operation was initiated
          *         from submit so that text of submit button will also be changed while disabling/enabling
          *         the submit button.
          */
-        Problem.prototype.enableAllButtons = function(enable, isFromCheckOperation) {
-            // Called by disableAllButtonsWhileRunning to automatically disable all buttons while check,reset, or
-            // save internal are running. Then enable all the buttons again after it is done.
-            if (enable) {
-                this.resetButton.add(this.saveButton).add(this.hintButton).add(this.showButton).
-                    removeAttr('disabled');
-            } else {
-                this.resetButton.add(this.saveButton).add(this.hintButton).add(this.showButton).
-                    attr({disabled: 'disabled'});
-            }
-            return this.enableSubmitButton(enable, isFromCheckOperation);
+        Problem.prototype.enableButtons = function(buttons, changeText) {
+            var that = this;
+            buttons.forEach(function(button) {
+                if (button === that.submitButton) {
+                    that.enableSubmitButton(true, changeText);
+                } else {
+                    button.removeAttr('disabled');
+                }
+            });
         };
 
         /**
