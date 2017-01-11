@@ -16,17 +16,18 @@ class PersistOnFailureTaskTestCase(TestCase):
     Test that persistent tasks save the appropriate values when needed.
     """
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         @task(base=PersistOnFailureTask)
-        def exampletask(exception=None):
+        def exampletask(message=None):
             u"""
             A simple task for testing persistence
             """
-            if exception:
-                raise ValueError(exception)
+            if message:
+                raise ValueError(message)
             return
-        self.exampletask = exampletask
-        super(PersistOnFailureTaskTestCase, self).setUp()
+        cls.exampletask = exampletask
+        super(PersistOnFailureTaskTestCase, cls).setUpClass()
 
     def test_exampletask_without_failure(self):
         result = self.exampletask.delay()
@@ -35,7 +36,7 @@ class PersistOnFailureTaskTestCase(TestCase):
         self.assertFalse(FailedTask.objects.exists())
 
     def test_exampletask_with_failure(self):
-        result = self.exampletask.delay(exception=u'The example task failed')
+        result = self.exampletask.delay(message=u'The example task failed')
         with self.assertRaises(ValueError):
             result.wait()
         self.assertEqual(result.status, u'FAILURE')
@@ -45,10 +46,8 @@ class PersistOnFailureTaskTestCase(TestCase):
             failed_task_object.task_name,
             u'openedx.core.djangoapps.persistenttask.tests.test_task.exampletask'
         )
-        self.assertEqual(failed_task_object.argstring, u'[]')
         self.assertEqual(failed_task_object.args, [])
-        self.assertEqual(failed_task_object.kwargstring, u'{"exception": "The example task failed"}')
-        self.assertEqual(failed_task_object.kwargs, {u'exception': u'The example task failed'})
+        self.assertEqual(failed_task_object.kwargs, {u'message': u'The example task failed'})
         self.assertEqual(failed_task_object.exc, u"ValueError(u'The example task failed',)")
         self.assertIsNone(failed_task_object.datetime_resolved)
 
@@ -62,8 +61,9 @@ class PersistOnFailureTaskTestCase(TestCase):
 
     def test_persists_with_overlength_field(self):
         overlong_message = u'A' * 5000
-        result = self.exampletask.delay(exception=overlong_message)
+        result = self.exampletask.delay(message=overlong_message)
         with self.assertRaises(ValueError):
             result.wait()
         failed_task_object = FailedTask.objects.get()
         self.assertEqual(len(failed_task_object.exc), 255)
+        self.assertIn('AAA...AAA', failed_task_object.exc)

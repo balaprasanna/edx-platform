@@ -3,7 +3,6 @@ Celery utility code for persistent tasks.
 """
 
 from datetime import datetime
-import json
 
 from celery import Task
 import pytz
@@ -37,27 +36,9 @@ class PersistOnFailureTask(Task):
         FailedTask.objects.create(
             task_name=truncate_to_field(FailedTask, 'task_name', self.name),
             task_id=task_id,  # UUID: No need to truncate
-            argstring=_serialize_args(args),
-            kwargstring=_serialize_kwargs(kwargs),
+            args=args,
+            kwargs=kwargs,
             exc=truncate_to_field(FailedTask, 'exc', repr(exc)),
             datetime_failed=pytz.utc.localize(datetime.utcnow()),
         )
         super(PersistOnFailureTask, self).on_failure(exc, task_id, args, kwargs, einfo)
-
-
-def _serialize_args(args):
-    """
-    Combine arglist into a json string.
-    """
-    if not isinstance(args, (tuple, list)):
-        raise TypeError(u'Args must be a tuple or list')
-    return json.dumps(args)
-
-
-def _serialize_kwargs(kwargs):
-    """
-    Combine kwarg dict into a json string
-    """
-    if not isinstance(kwargs, dict):
-        raise TypeError(u'Kwargs must be a dict')
-    return json.dumps(kwargs)
