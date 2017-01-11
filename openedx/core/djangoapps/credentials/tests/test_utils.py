@@ -10,6 +10,7 @@ import httpretty
 from edx_oauth2_provider.tests.factories import ClientFactory
 from provider.constants import CONFIDENTIAL
 
+from openedx.core.djangoapps.catalog.tests import factories as catalog_factories
 from openedx.core.djangoapps.credentials.models import CredentialsApiConfig
 from openedx.core.djangoapps.credentials.tests.mixins import CredentialsApiConfigMixin, CredentialsDataMixin
 from openedx.core.djangoapps.credentials.utils import (
@@ -18,7 +19,6 @@ from openedx.core.djangoapps.credentials.utils import (
     get_programs_credentials
 )
 from openedx.core.djangoapps.credentials.tests import factories
-from openedx.core.djangoapps.catalog.tests import factories as catalog_factories
 from openedx.core.djangoapps.programs.tests.mixins import ProgramsApiConfigMixin, ProgramsDataMixin
 from openedx.core.djangoapps.programs.models import ProgramsApiConfig
 from openedx.core.djangolib.testing.utils import CacheIsolationTestCase
@@ -42,25 +42,6 @@ class TestCredentialsRetrieval(CredentialsApiConfigMixin, CredentialsDataMixin, 
         self.user = UserFactory()
 
         cache.clear()
-
-    def _expected_progam_credentials_data(self):
-        """
-        Dry method for getting expected program credentials response data.
-        """
-        return [
-            factories.UserCredential(
-                id=1,
-                username='test',
-                credential=factories.ProgramCredential(),
-                certificate_url=self.CREDENTIALS_API_RESPONSE['results'][0]['certificate_url'],
-            ),
-            factories.UserCredential(
-                id=2,
-                username='test',
-                credential=factories.ProgramCredential(),
-                certificate_url=self.CREDENTIALS_API_RESPONSE['results'][1]['certificate_url'],
-            )
-        ]
 
     def expected_credentials_display_data(self, programs):
         """ Returns expected credentials data to be represented. """
@@ -131,20 +112,20 @@ class TestCredentialsRetrieval(CredentialsApiConfigMixin, CredentialsDataMixin, 
         self.create_credentials_config()
 
         # Mocking the API responses from programs and credentials
-        uuidfirst, uuidsecond = str(uuid.uuid4()), str(uuid.uuid4())
+        primary_uuid, alternate_uuid = str(uuid.uuid4()), str(uuid.uuid4())
         credentials_api_response = {
             "next": None,
             "results": [
                 factories.UserCredential(
-                    id=1, username='test',
-                    credential=factories.ProgramCredential(program_uuid=uuidfirst)
+                    username='test',
+                    credential=factories.ProgramCredential(program_uuid=primary_uuid)
                 ),
                 factories.UserCredential(
-                    id=2, username='test',
-                    credential=factories.ProgramCredential(program_uuid=uuidsecond)
+                    username='test',
+                    credential=factories.ProgramCredential(program_uuid=alternate_uuid)
                 ),
                 factories.UserCredential(
-                    id=3, username='test',
+                    username='test',
                     status='revoked',
                     credential=factories.ProgramCredential()
                 )
@@ -152,7 +133,7 @@ class TestCredentialsRetrieval(CredentialsApiConfigMixin, CredentialsDataMixin, 
         }
         self.mock_credentials_api(self.user, data=credentials_api_response, reset_url=False)
         programs = [
-            catalog_factories.Program(uuid=uuidfirst), catalog_factories.Program(uuid=uuidsecond)
+            catalog_factories.Program(uuid=primary_uuid), catalog_factories.Program(uuid=alternate_uuid)
         ]
 
         with mock.patch("openedx.core.djangoapps.credentials.utils.get_programs_for_credentials") as mock_get_programs:
@@ -173,7 +154,7 @@ class TestCredentialsRetrieval(CredentialsApiConfigMixin, CredentialsDataMixin, 
                 "username": "test",
                 "credential": {
                     "credential_id": 1,
-                    "program_uuid": 'c9f2568b-6459-4fc2-badd-a14571a3de66'
+                    "program_uuid": str(uuid.uuid4())
                 },
                 "status": "revoked",
                 "uuid": "dummy-uuid-1"
@@ -192,20 +173,20 @@ class TestCredentialsRetrieval(CredentialsApiConfigMixin, CredentialsDataMixin, 
         self.create_credentials_config()
 
         # Mocking the API responses from programs and credentials
-        uuidfirst, uuidsecond = str(uuid.uuid4()), str(uuid.uuid4())
+        primary_uuid, alternate_uuid = str(uuid.uuid4()), str(uuid.uuid4())
         credentials_api_response = {
             "next": None,
             "results": [
                 factories.UserCredential(
-                    id=1, username='test',
-                    credential=factories.ProgramCredential(program_uuid=uuidfirst)
+                    username='test',
+                    credential=factories.ProgramCredential(program_uuid=primary_uuid)
                 ),
                 factories.UserCredential(
-                    id=2, username='test',
-                    credential=factories.ProgramCredential(program_uuid=uuidsecond)
+                    username='test',
+                    credential=factories.ProgramCredential(program_uuid=alternate_uuid)
                 ),
                 factories.UserCredential(
-                    id=3, username='test',
+                    username='test',
                     status='revoked',
                     credential=factories.ProgramCredential()
                 )
@@ -213,7 +194,7 @@ class TestCredentialsRetrieval(CredentialsApiConfigMixin, CredentialsDataMixin, 
         }
         self.mock_credentials_api(self.user, data=credentials_api_response, reset_url=False)
         programs = [
-            catalog_factories.Program(uuid=uuidfirst), catalog_factories.Program(uuid=uuidsecond)
+            catalog_factories.Program(uuid=primary_uuid), catalog_factories.Program(uuid=alternate_uuid)
         ]
 
         with mock.patch("openedx.core.djangoapps.catalog.utils.get_programs") as mock_get_programs:

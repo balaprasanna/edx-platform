@@ -100,7 +100,7 @@ class GetCompletedProgramsTestCase(mixins.CatalogIntegrationMixin, TestCase):
 @unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Test only valid in lms')
 class GetAwardedCertificateProgramsTestCase(TestCase):
     """
-    Test the get_awarded_certificate_programs function
+    Test the get_certified_programs function
     """
 
     def make_credential_result(self, **kwargs):
@@ -122,7 +122,7 @@ class GetAwardedCertificateProgramsTestCase(TestCase):
         return result
 
     @mock.patch(TASKS_MODULE + '.get_user_credentials')
-    def test_get_awarded_certificate_programs(self, mock_get_user_credentials):
+    def test_get_certified_programs(self, mock_get_user_credentials):
         """
         Ensure the API is called and results handled correctly.
         """
@@ -133,7 +133,7 @@ class GetAwardedCertificateProgramsTestCase(TestCase):
             self.make_credential_result(status='revoked', credential={'program_uuid': 3}),
         ]
 
-        result = tasks.get_awarded_certificate_programs(student)
+        result = tasks.get_certified_programs(student)
         self.assertEqual(mock_get_user_credentials.call_args[0], (student, ))
         self.assertEqual(result, [1])
 
@@ -170,7 +170,7 @@ class AwardProgramCertificateTestCase(TestCase):
 @unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Test only valid in lms')
 @ddt.ddt
 @mock.patch(TASKS_MODULE + '.award_program_certificate')
-@mock.patch(TASKS_MODULE + '.get_awarded_certificate_programs')
+@mock.patch(TASKS_MODULE + '.get_certified_programs')
 @mock.patch(TASKS_MODULE + '.get_completed_programs')
 @override_settings(CREDENTIALS_SERVICE_USERNAME='test-service-username')
 class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, CredentialsApiConfigMixin, TestCase):
@@ -183,14 +183,14 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
         self.create_credentials_config()
         self.student = UserFactory.create(username='test-student')
 
-        self.catalog_integration = self.create_catalog_integration(cache_ttl=1)
+        self.catalog_integration = self.create_catalog_integration()
         ClientFactory.create(name='credentials')
         UserFactory.create(username=settings.CREDENTIALS_SERVICE_USERNAME)  # pylint: disable=no-member
 
     def test_completion_check(
             self,
             mock_get_completed_programs,
-            mock_get_awarded_certificate_programs,  # pylint: disable=unused-argument
+            mock_get_certified_programs,  # pylint: disable=unused-argument
             mock_award_program_certificate,  # pylint: disable=unused-argument
     ):
         """
@@ -211,7 +211,7 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
             already_awarded_program_uuids,
             expected_awarded_program_uuids,
             mock_get_completed_programs,
-            mock_get_awarded_certificate_programs,
+            mock_get_certified_programs,
             mock_award_program_certificate,
     ):
         """
@@ -219,7 +219,7 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
         the proper programs.
         """
         mock_get_completed_programs.return_value = [1, 2, 3]
-        mock_get_awarded_certificate_programs.return_value = already_awarded_program_uuids
+        mock_get_certified_programs.return_value = already_awarded_program_uuids
 
         tasks.award_program_certificates.delay(self.student.username).get()
 
@@ -262,7 +262,7 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
     def test_abort_if_no_completed_programs(
             self,
             mock_get_completed_programs,
-            mock_get_awarded_certificate_programs,
+            mock_get_certified_programs,
             mock_award_program_certificate,
     ):
         """
@@ -272,7 +272,7 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
         mock_get_completed_programs.return_value = []
         tasks.award_program_certificates.delay(self.student.username).get()
         self.assertTrue(mock_get_completed_programs.called)
-        self.assertFalse(mock_get_awarded_certificate_programs.called)
+        self.assertFalse(mock_get_certified_programs.called)
         self.assertFalse(mock_award_program_certificate.called)
 
     def _make_side_effect(self, side_effects):
@@ -297,7 +297,7 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
     def test_continue_awarding_certs_if_error(
             self,
             mock_get_completed_programs,
-            mock_get_awarded_certificate_programs,
+            mock_get_certified_programs,
             mock_award_program_certificate,
     ):
         """
@@ -307,7 +307,7 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
         that arise are logged also.
         """
         mock_get_completed_programs.return_value = [1, 2]
-        mock_get_awarded_certificate_programs.side_effect = [[], [2]]
+        mock_get_certified_programs.side_effect = [[], [2]]
         mock_award_program_certificate.side_effect = self._make_side_effect([Exception('boom'), None])
 
         with mock.patch(TASKS_MODULE + '.LOGGER.info') as mock_info, \
@@ -337,7 +337,7 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
     def test_retry_on_credentials_api_errors(
             self,
             mock_get_completed_programs,
-            mock_get_awarded_certificate_programs,
+            mock_get_certified_programs,
             mock_award_program_certificate,
     ):
         """
@@ -347,8 +347,8 @@ class AwardProgramCertificatesTestCase(mixins.CatalogIntegrationMixin, Credentia
         retry.
         """
         mock_get_completed_programs.return_value = [1, 2]
-        mock_get_awarded_certificate_programs.return_value = [1]
-        mock_get_awarded_certificate_programs.side_effect = self._make_side_effect([Exception('boom'), None])
+        mock_get_certified_programs.return_value = [1]
+        mock_get_certified_programs.side_effect = self._make_side_effect([Exception('boom'), None])
         tasks.award_program_certificates.delay(self.student.username).get()
-        self.assertEqual(mock_get_awarded_certificate_programs.call_count, 2)
+        self.assertEqual(mock_get_certified_programs.call_count, 2)
         self.assertEqual(mock_award_program_certificate.call_count, 1)

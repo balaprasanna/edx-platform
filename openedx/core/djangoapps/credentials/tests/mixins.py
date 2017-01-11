@@ -1,6 +1,5 @@
 """Mixins for use during testing."""
 import json
-import uuid
 
 import httpretty
 
@@ -38,16 +37,12 @@ class CredentialsDataMixin(object):
             factories.UserCredential(
                 id=1,
                 username='test',
-                credential=factories.ProgramCredential(
-                    program_uuid=str(uuid.uuid4())
-                )
+                credential=factories.ProgramCredential()
             ),
             factories.UserCredential(
                 id=2,
                 username='test',
-                credential=factories.ProgramCredential(
-                    program_uuid=str(uuid.uuid4())
-                )
+                credential=factories.ProgramCredential()
             ),
             factories.UserCredential(
                 id=3,

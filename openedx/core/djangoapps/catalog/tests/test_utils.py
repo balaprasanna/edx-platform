@@ -24,8 +24,8 @@ class TestGetPrograms(mixins.CatalogIntegrationMixin, TestCase):
         super(TestGetPrograms, self).setUp()
 
         self.user = UserFactory()
-        self.uuid = str(uuid.uuid4())
-        self.uuidsecond = str(uuid.uuid4())
+        self.primary_uuid = str(uuid.uuid4())
+        self.alternate_uuid = str(uuid.uuid4())
         self.type = 'FooBar'
         self.catalog_integration = self.create_catalog_integration(cache_ttl=1)
 
@@ -140,9 +140,9 @@ class TestGetPrograms(mixins.CatalogIntegrationMixin, TestCase):
         program = factories.Program()
         mock_get_catalog_data.return_value = program
 
-        data = utils.get_programs(self.user, uuid=self.uuid)
+        data = utils.get_programs(self.user, uuid=self.primary_uuid)
 
-        self.assert_contract(mock_get_catalog_data.call_args, program_uuid=self.uuid)
+        self.assert_contract(mock_get_catalog_data.call_args, program_uuid=self.primary_uuid)
         self.assertEqual(data, program)
 
     def test_get_programs_by_type(self, _mock_cache, mock_get_catalog_data):
@@ -174,23 +174,21 @@ class TestGetPrograms(mixins.CatalogIntegrationMixin, TestCase):
         data = utils.get_programs(self.user)
         self.assertEqual(data, [])
 
-    def _expected_progam_credentials_data(self):
+    def _expected_program_credentials_data(self):
         """
         Dry method for getting expected program credentials response data.
         """
         return [
             credentials_factories.UserCredential(
-                id=1,
                 username='test',
                 credential=credentials_factories.ProgramCredential(
-                    program_uuid=self.uuid
+                    program_uuid=self.primary_uuid
                 )
             ),
             credentials_factories.UserCredential(
-                id=2,
                 username='test',
                 credential=credentials_factories.ProgramCredential(
-                    program_uuid=self.uuidsecond
+                    program_uuid=self.alternate_uuid
                 )
             )
         ]
@@ -198,11 +196,11 @@ class TestGetPrograms(mixins.CatalogIntegrationMixin, TestCase):
     def test_get_program_for_certificates(self, _mock_cache, mock_get_catalog_data):   # pylint: disable=unused-argument
         """Verify programs data can be retrieved and parsed correctly for certificates."""
         programs = [
-            factories.Program(uuid=self.uuid),
-            factories.Program(uuid=self.uuidsecond)
+            factories.Program(uuid=self.primary_uuid),
+            factories.Program(uuid=self.alternate_uuid)
         ]
 
-        program_credentials_data = self._expected_progam_credentials_data()
+        program_credentials_data = self._expected_program_credentials_data()
         with mock.patch("openedx.core.djangoapps.catalog.utils.get_programs") as patched_get_programs:
             patched_get_programs.return_value = programs
             actual = utils.get_programs_for_credentials(self.user, program_credentials_data)
@@ -212,7 +210,7 @@ class TestGetPrograms(mixins.CatalogIntegrationMixin, TestCase):
 
     def test_get_program_for_certificates_no_data(self, _mock_cache, mock_get_catalog_data):   # pylint: disable=unused-argument
         """Verify behavior when no programs data is found for the user."""
-        program_credentials_data = self._expected_progam_credentials_data()
+        program_credentials_data = self._expected_program_credentials_data()
         with mock.patch("openedx.core.djangoapps.catalog.utils.get_programs") as patched_get_programs:
             patched_get_programs.return_value = []
             actual = utils.get_programs_for_credentials(self.user, program_credentials_data)

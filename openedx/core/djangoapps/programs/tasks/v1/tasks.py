@@ -62,12 +62,11 @@ def get_completed_programs(student):
         list of program UUIDs
 
     """
-
     meter = ProgramProgressMeter(student, use_catalog=True)
     return meter.completed_programs
 
 
-def get_awarded_certificate_programs(student):
+def get_certified_programs(student):
     """
     Find the UUIDs of all the programs for which the student has already been awarded
     a certificate.
@@ -80,11 +79,11 @@ def get_awarded_certificate_programs(student):
         UUIDs of the programs for which the student has been awarded a certificate
 
     """
-    certificate_programs = []
+    certified_programs = []
     for credential in get_user_credentials(student):
         if 'program_uuid' in credential['credential'] and credential['status'] == 'awarded':
-            certificate_programs.append(credential['credential']['program_uuid'])
-    return certificate_programs
+            certified_programs.append(credential['credential']['program_uuid'])
+    return certified_programs
 
 
 def award_program_certificate(client, username, program_uuid):
@@ -165,7 +164,7 @@ def award_program_certificates(self, username):
 
         # Determine which program certificates the user has already been
         # awarded, if any.
-        existing_program_uuids = get_awarded_certificate_programs(student)
+        existing_program_uuids = get_certified_programs(student)
 
     except Exception as exc:  # pylint: disable=broad-except
         LOGGER.exception('Failed to determine program certificates to be awarded for user %s', username)

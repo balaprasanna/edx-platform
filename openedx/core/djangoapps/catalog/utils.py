@@ -1,6 +1,4 @@
 """Helper functions for working with the catalog service."""
-import logging
-
 from django.conf import settings
 from django.contrib.auth.models import User
 from edx_rest_api_client.client import EdxRestApiClient
@@ -9,9 +7,6 @@ from opaque_keys.edx.keys import CourseKey
 from openedx.core.djangoapps.catalog.models import CatalogIntegration
 from openedx.core.lib.edx_api_utils import get_edx_api_data
 from openedx.core.lib.token_utils import JwtBuilder
-
-
-log = logging.getLogger(__name__)
 
 
 def create_catalog_api_client(user, catalog_integration):
