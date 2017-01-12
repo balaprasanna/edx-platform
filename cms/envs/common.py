@@ -950,9 +950,6 @@ INSTALLED_APPS = (
 
     # management of user-triggered async tasks (course import/export, etc.)
     'user_tasks',
-
-    # Persisting failed tasks, so they can be retried
-    'openedx.core.djangoapps.persistenttask',
 )
 
 
