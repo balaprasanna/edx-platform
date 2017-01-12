@@ -178,7 +178,7 @@ class TestUserEnrollmentApi(UrlResetMixin, MobileAPITestCase, MobileAuthUserTest
             if result['error_code'] is not None:
                 self.assertFalse(result['has_access'])
 
-    def test_mobile_available_flag_override(self):
+    def test_ignore_mobile_available_flag_access(self):
         """
         Test that when the IgnoreMobileAvailableFlagConfig's mobile_available_override is
         true, the mobile_available access restriction is ignored.

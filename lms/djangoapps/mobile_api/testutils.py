@@ -204,7 +204,7 @@ class MobileCourseAccessTestMixin(MobileAPIMilestonesMixin):
     )
     @ddt.unpack
     @patch.dict(settings.FEATURES, {'ENABLE_MKTG_SITE': True})
-    def test_mobile_available_flag_override(self, role, should_succeed):
+    def test_ignore_mobile_available_flag(self, role, should_succeed):
         """
         Verifies when IgnoreMobileAvailableFlagConfig's mobile_available_override is set
         to true, course access disregards the mobile_availble flag for all roles.
