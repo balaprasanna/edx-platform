@@ -281,22 +281,17 @@ describe 'Problem', ->
               callable()
             done: (callable) ->
               callable()
-        spyOn(@problem, 'enableSubmitButton').and.callThrough()
-        spyOn(@problem.submitButtonLabel, 'text').and.callThrough()
-
+        spyOn(@problem.submitButtonLabel, 'text')
         $('#input_example_1').val('test').trigger('input')
         expect(@problem.submitButton).not.toHaveAttr('disabled')
-
         @problem.submit()
         expect(@problem.submitButton).not.toHaveAttr('disabled')
-        expect(@problem.enableSubmitButton).toHaveBeenCalledWith true
         expect(@problem.submitButtonLabel.text).toHaveBeenCalledWith 'Submitting'
         if jQuery.active == 0
           deferred.resolve()
         deferred.promise()
 
       runs.call(self).then(->
-        expect(self.problem.enableSubmitButton).toHaveBeenCalledWith true, true
         expect(self.problem.submitButtonLabel.text).toHaveBeenCalledWith 'Submit'
         return
       ).always done
@@ -437,6 +432,47 @@ describe 'Problem', ->
           always: (callable) -> callable()
       @problem.reset()
       expect($('.notification-gentle-alert .notification-message').text()).toEqual("Error on reset.")
+
+    it 'tests that reset does not enable the submit button when submit is originally disabled', (done) ->
+      deferred = $.Deferred()
+      self = this
+      curr_html = @problem.el.html()
+      runs = ->
+        spyOn($, 'postWithPrefix').and.callFake (url, answers, callback) ->
+          promise = undefined
+          callback(success: 'correct', html: curr_html)
+          promise = always: (callable) ->
+            callable()
+        expect(@problem.submitButton).toHaveAttr('disabled')
+        @problem.reset()
+        if jQuery.active == 0
+          deferred.resolve()
+        deferred.promise()
+
+      runs.call(self).then(->
+        expect(self.problem.submitButton).toHaveAttr('disabled')
+      ).always done
+
+    it 'tests that reset disables the submit button when submit is originally enabled', (done) ->
+      deferred = $.Deferred()
+      self = this
+      curr_html = @problem.el.html()
+      runs = ->
+        spyOn($, 'postWithPrefix').and.callFake (url, answers, callback) ->
+          promise = undefined
+          callback(success: 'correct', html: curr_html)
+          promise = always: (callable) ->
+            callable()
+        $('#input_example_1').val('test').trigger('input')
+        expect(@problem.submitButton).not.toHaveAttr('disabled')
+        @problem.reset()
+        if jQuery.active == 0
+          deferred.resolve()
+        deferred.promise()
+
+      runs.call(self).then(->
+        expect(self.problem.submitButton).toHaveAttr('disabled')
+      ).always done
 
     it 'tests if all the buttons are disabled and the text of submit button remains same while resetting', (done) ->
       deferred = $.Deferred()
@@ -739,6 +775,48 @@ describe 'Problem', ->
       expect($.postWithPrefix).toHaveBeenCalledWith '/problem/Problem1/problem_save',
           'foo=1&bar=2', jasmine.any(Function)
 
+    it 'tests that save does not enable the submit button when submit is originally disabled', (done) ->
+      deferred = $.Deferred()
+      self = this
+      curr_html = @problem.el.html()
+      runs = ->
+        spyOn($, 'postWithPrefix').and.callFake (url, answers, callback) ->
+          promise = undefined
+          callback(success: 'correct', html: curr_html)
+          promise = always: (callable) ->
+            callable()
+        expect(@problem.submitButton).toHaveAttr('disabled')
+        @problem.save()
+        if jQuery.active == 0
+          deferred.resolve()
+        deferred.promise()
+
+      runs.call(self).then(->
+        expect(self.problem.submitButton).toHaveAttr('disabled')
+      ).always done
+
+    it 'tests that save does not disable the submit button when submit is originally enabled', (done) ->
+      deferred = $.Deferred()
+      self = this
+      curr_html = @problem.el.html()
+      runs = ->
+        spyOn($, 'postWithPrefix').and.callFake (url, answers, callback) ->
+          promise = undefined
+          callback(success: 'correct', html: curr_html)
+          promise = always: (callable) ->
+            callable()
+        # Submit button should not be disabled after adding an input
+        $('#input_example_1').val('test').trigger('input')
+        expect(@problem.submitButton).not.toHaveAttr('disabled')
+        @problem.save()
+        if jQuery.active == 0
+          deferred.resolve()
+        deferred.promise()
+
+      runs.call(self).then(->
+        expect(self.problem.submitButton).not.toHaveAttr('disabled')
+      ).always done
+
     it 'tests if all the buttons are disabled and the text of submit button does not change while saving.', (done) ->
       deferred = $.Deferred()
       self = this
@@ -749,11 +827,9 @@ describe 'Problem', ->
           callback(success: 'correct', html: curr_html)
           promise = always: (callable) ->
             callable()
-        spyOn(@problem, 'disableButtons').and.callThrough()
         spyOn @problem, 'enableSubmitButton'
         spyOn @problem.submitButtonLabel, 'text'
         @problem.save()
-        expect(@problem.disableButtons).toHaveBeenCalled
         expect(@problem.enableSubmitButton).not.toHaveBeenCalled
         expect(@problem.submitButtonLabel).toHaveText 'Submit'
         if jQuery.active == 0

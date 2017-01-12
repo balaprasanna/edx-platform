@@ -36,12 +36,6 @@
                 }
                 return Problem.prototype.enableSubmitButton.apply(that, arguments);
             };
-            this.enableButtons = function() {
-                return Problem.prototype.enableButtons.apply(that, arguments);
-            };
-            this.disableButtons = function() {
-                return Problem.prototype.disableButtons.apply(that, arguments);
-            };
             this.disableAllButtonsWhileRunning = function(
                 operationCallback, isFromCheckOperation // eslint-disable-line no-unused-vars
             ) {
@@ -1161,9 +1155,12 @@
         Problem.prototype.disableAllButtonsWhileRunning = function(operationCallback, isFromCheckOperation) {
             var that = this;
             var allButtons = [this.resetButton, this.saveButton, this.showButton, this.hintButton, this.submitButton];
-            var disabledButtons = this.disableButtons(allButtons, isFromCheckOperation);
+            var initiallyEnabledButtons = allButtons.filter(function(button) {
+                return !button.attr('disabled');
+            });
+            this.disableButtons(initiallyEnabledButtons, isFromCheckOperation);
             return operationCallback().always(function() {
-                return that.enableButtons(disabledButtons, isFromCheckOperation);
+                return that.enableButtons(initiallyEnabledButtons, isFromCheckOperation);
             });
         };
 
@@ -1172,28 +1169,20 @@
          *     the changing text it contains.
          *
          * params:
-         *     'changeText' is a boolean to keep track if operation was initiated
+         *     'buttons' is an array of buttons that will have a 'disabled' attribute added
+         *     'changeSubmitButtonText' is a boolean to keep track if operation was initiated
          *         from submit so that text of submit button will also be changed while disabling/enabling
          *         the submit button.
-         *
-         * returns:
-         *      an array of the buttons that have had their state modified to disabled.
-         *          This return value should be preserved and used to re-enable them when input should be accepted again
          */
-        Problem.prototype.disableButtons = function(buttons, changeText) {
+        Problem.prototype.disableButtons = function(buttons, changeSubmitButtonText) {
             var that = this;
-            var disabledButtons = [];
             buttons.forEach(function(button) {
-                if (!button.attr('disabled')) {
-                    disabledButtons.push(button);
-                    if (button === that.submitButton) {
-                        that.enableSubmitButton(false, changeText);
-                    } else {
-                        button.attr({disabled: 'disabled'});
-                    }
+                if (button === that.submitButton) {
+                    that.enableSubmitButton(false, changeSubmitButtonText);
+                } else {
+                    button.attr({disabled: 'disabled'});
                 }
             });
-            return disabledButtons;
         };
 
         /**
@@ -1202,15 +1191,15 @@
          *
          * params:
          *     'buttons' is an array of buttons that will have their 'disabled' attribute deleted
-         *     'changeText' is a boolean to keep track if operation was initiated
+         *     'changeSubmitButtonText' is a boolean to keep track if operation was initiated
          *         from submit so that text of submit button will also be changed while disabling/enabling
          *         the submit button.
          */
-        Problem.prototype.enableButtons = function(buttons, changeText) {
+        Problem.prototype.enableButtons = function(buttons, changeSubmitButtonText) {
             var that = this;
             buttons.forEach(function(button) {
                 if (button === that.submitButton) {
-                    that.enableSubmitButton(true, changeText);
+                    that.enableSubmitButton(true, changeSubmitButtonText);
                 } else {
                     button.removeAttr('disabled');
                 }
@@ -1222,25 +1211,25 @@
          *
          * params:
          *     'enable' is a boolean to determine enabling/disabling of submit button.
-         *     'changeText' is a boolean to determine if there is need to change the
+         *     'changeSubmitButtonText' is a boolean to determine if there is need to change the
          *         text of submit button as well.
          */
-        Problem.prototype.enableSubmitButton = function(enable, changeText) {
+        Problem.prototype.enableSubmitButton = function(enable, changeSubmitButtonText) {
             var submitCanBeEnabled;
-            if (changeText === null || changeText === undefined) {
-                changeText = true; // eslint-disable-line no-param-reassign
+            if (changeSubmitButtonText === null || changeSubmitButtonText === undefined) {
+                changeSubmitButtonText = true; // eslint-disable-line no-param-reassign
             }
             if (enable) {
                 submitCanBeEnabled = this.submitButton.data('should-enable-submit-button') === 'True';
                 if (submitCanBeEnabled) {
                     this.submitButton.removeAttr('disabled');
                 }
-                if (changeText) {
+                if (changeSubmitButtonText) {
                     this.submitButtonLabel.text(this.submitButtonSubmitText);
                 }
             } else {
                 this.submitButton.attr({disabled: 'disabled'});
-                if (changeText) {
+                if (changeSubmitButtonText) {
                     this.submitButtonLabel.text(this.submitButtonSubmittingText);
                 }
             }
