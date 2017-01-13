@@ -1158,30 +1158,9 @@
             var initiallyEnabledButtons = allButtons.filter(function(button) {
                 return !button.attr('disabled');
             });
-            this.disableButtons(initiallyEnabledButtons, isFromCheckOperation);
+            this.enableButtons(initiallyEnabledButtons, false, isFromCheckOperation);
             return operationCallback().always(function() {
-                return that.enableButtons(initiallyEnabledButtons, isFromCheckOperation);
-            });
-        };
-
-        /**
-         * Disables all buttons by adding the disabled attribute. The submit button is checked separately due to
-         *     the changing text it contains.
-         *
-         * params:
-         *     'buttons' is an array of buttons that will have a 'disabled' attribute added
-         *     'changeSubmitButtonText' is a boolean to keep track if operation was initiated
-         *         from submit so that text of submit button will also be changed while disabling/enabling
-         *         the submit button.
-         */
-        Problem.prototype.disableButtons = function(buttons, changeSubmitButtonText) {
-            var that = this;
-            buttons.forEach(function(button) {
-                if (button === that.submitButton) {
-                    that.enableSubmitButton(false, changeSubmitButtonText);
-                } else {
-                    button.attr({disabled: 'disabled'});
-                }
+                return that.enableButtons(initiallyEnabledButtons, true, isFromCheckOperation);
             });
         };
 
@@ -1191,17 +1170,20 @@
          *
          * params:
          *     'buttons' is an array of buttons that will have their 'disabled' attribute deleted
+         *     'enable' a boolean to either enable or disable the buttons passed in the first parameter
          *     'changeSubmitButtonText' is a boolean to keep track if operation was initiated
          *         from submit so that text of submit button will also be changed while disabling/enabling
          *         the submit button.
          */
-        Problem.prototype.enableButtons = function(buttons, changeSubmitButtonText) {
+        Problem.prototype.enableButtons = function(buttons, enable, changeSubmitButtonText) {
             var that = this;
             buttons.forEach(function(button) {
                 if (button === that.submitButton) {
-                    that.enableSubmitButton(true, changeSubmitButtonText);
-                } else {
+                    that.enableSubmitButton(enable, changeSubmitButtonText);
+                } else if (enable) {
                     button.removeAttr('disabled');
+                } else {
+                    button.attr({disabled: 'disabled'});
                 }
             });
         };
